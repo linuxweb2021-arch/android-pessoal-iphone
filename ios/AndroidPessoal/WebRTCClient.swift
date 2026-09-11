@@ -102,13 +102,13 @@ final class WebRTCClient: NSObject {
     func sendControl(_ message: ControlEnvelope) {
         guard let data = try? JSONEncoder().encode(message) else { return }
         let buffer = RTCDataBuffer(data: data, isBinary: false)
-        if touchDataChannel?.readyState == .open {
-            _ = touchDataChannel?.sendData(buffer)
-        } else if dataChannel?.readyState == .open {
+        if message.action == "down" || message.action == "up" || message.action == "cancel" {
             _ = dataChannel?.sendData(buffer)
             return
         }
-        if message.action == "down" || message.action == "up" || message.action == "cancel" {
+        if touchDataChannel?.readyState == .open {
+            _ = touchDataChannel?.sendData(buffer)
+        } else {
             _ = dataChannel?.sendData(buffer)
         }
     }

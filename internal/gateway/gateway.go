@@ -195,7 +195,9 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 		}
 		channel.OnMessage(func(message webrtc.DataChannelMessage) {
 			if err := android.HandleControl(message.Data, remote.ID, remote.Generation); err != nil {
-				g.log.Warn("rejected control message", "error", err)
+				if !errors.Is(err, scrcpy.ErrStaleControl) {
+					g.log.Warn("rejected control message", "error", err)
+				}
 			}
 		})
 		channel.OnClose(func() {
@@ -203,7 +205,9 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 		})
 	})
 
-	go readRTCP(ctx, videoSender, android.ResetVideo)
+	// An IDR is already emitted every second. Restarting the capture for every
+	// PLI creates a feedback loop with the receiver and stalls screen updates.
+	go readRTCP(ctx, videoSender, nil)
 	go readRTCP(ctx, audioSender, nil)
 	go streamVideo(ctx, android, video, g.log)
 	go streamAudio(ctx, android, audio, g.log)

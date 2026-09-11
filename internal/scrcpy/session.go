@@ -19,6 +19,8 @@ import (
 
 const Version = "3.3.4"
 
+var ErrStaleControl = errors.New("stale control message")
+
 type Config struct {
 	ADBPath        string
 	Serial         string
@@ -250,16 +252,26 @@ func (s *Session) HandleControl(data []byte, sessionID string, generation int64)
 	case "text":
 		return s.writeTextLocked(event.Text)
 	case "down", "move", "up", "cancel":
-		if event.ScreenRevision <= 0 || event.Sequence <= s.lastSequence {
-			return errors.New("stale control message")
+		if event.ScreenRevision <= 0 {
+			return ErrStaleControl
 		}
 		if s.screenRevision != 0 && event.ScreenRevision != s.screenRevision {
 			if err := s.cancelAllLocked(); err != nil {
 				return err
 			}
 		}
+		_, active := s.activePointers[event.PointerID]
+		if event.Action == "down" {
+			if active {
+				return ErrStaleControl
+			}
+		} else if event.Sequence <= s.lastSequence || !active {
+			return ErrStaleControl
+		}
 		s.screenRevision = event.ScreenRevision
-		s.lastSequence = event.Sequence
+		if event.Sequence > s.lastSequence {
+			s.lastSequence = event.Sequence
+		}
 		if event.X < 0 || event.X > 1 || event.Y < 0 || event.Y > 1 || math.IsNaN(event.X) || math.IsNaN(event.Y) ||
 			event.ScreenWidth == 0 || event.ScreenHeight == 0 || event.ScreenWidth > 8192 || event.ScreenHeight > 8192 {
 			return errors.New("invalid touch coordinates")
