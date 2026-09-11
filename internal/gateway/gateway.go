@@ -98,9 +98,9 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 	case "economy":
 		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 960, 24, 2_000_000
 	case "quality":
-		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1280, 30, 5_000_000
+		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1024, 30, 4_000_000
 	default:
-		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1280, 30, 4_000_000
+		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1024, 30, 3_000_000
 	}
 	android, err := scrcpy.Start(ctx, scrcpyConfig, g.log)
 	if err != nil {
