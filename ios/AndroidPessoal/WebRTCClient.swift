@@ -22,6 +22,8 @@ final class WebRTCClient: NSObject {
     private var remoteVideoTrack: RTCVideoTrack?
     private var remoteAudioTrack: RTCAudioTrack?
     private weak var renderer: RTCVideoRenderer?
+    private var pendingRemoteCandidates: [RTCIceCandidate] = []
+    private var remoteDescriptionReady = false
 
     init(api: APIClient, session: RemoteSession) {
         self.api = api
@@ -139,10 +141,20 @@ final class WebRTCClient: NSObject {
         case "answer":
             guard let sdp = signal.sdp else { throw AppError.invalidResponse }
             try await setRemoteDescription(RTCSessionDescription(type: .answer, sdp: sdp), on: connection)
+            remoteDescriptionReady = true
+            let pending = pendingRemoteCandidates
+            pendingRemoteCandidates.removeAll()
+            for candidate in pending {
+                try await add(candidate: candidate, to: connection)
+            }
         case "ice":
             guard let candidate = signal.candidate else { throw AppError.invalidResponse }
             let value = RTCIceCandidate(sdp: candidate, sdpMLineIndex: signal.sdpMLineIndex ?? 0, sdpMid: signal.sdpMid)
-            try await add(candidate: value, to: connection)
+            if remoteDescriptionReady {
+                try await add(candidate: value, to: connection)
+            } else {
+                pendingRemoteCandidates.append(value)
+            }
         case "error":
             throw AppError.server(signal.sdp ?? "O executor recusou a sessão.")
         default:

@@ -275,6 +275,7 @@ func (s *Server) websocket(w http.ResponseWriter, r *http.Request, sessionID str
 					return
 				}
 			case <-peer.Done():
+				_ = conn.Close()
 				return
 			case <-ticker.C:
 				_ = conn.SetWriteDeadline(time.Now().Add(8 * time.Second))

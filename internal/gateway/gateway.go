@@ -124,6 +124,10 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 		return fmt.Errorf("connect signaling: %w", err)
 	}
 	defer connection.Close()
+	go func() {
+		<-ctx.Done()
+		_ = connection.Close()
+	}()
 
 	var api *webrtc.API
 	if g.cfg.ICEUDPPort > 0 {
@@ -173,13 +177,6 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 		defer writeMu.Unlock()
 		return connection.WriteJSON(message)
 	}
-	peer.OnICECandidate(func(candidate *webrtc.ICECandidate) {
-		if candidate == nil {
-			return
-		}
-		value := candidate.ToJSON()
-		_ = writeSignal(signalMessage{Type: "ice", Candidate: value.Candidate, SDPMid: value.SDPMid, SDPMLineIndex: value.SDPMLineIndex})
-	})
 	peer.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		g.log.Info("WebRTC state", "session", remote.ID, "state", state.String())
 		if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
@@ -224,10 +221,22 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 			if err != nil {
 				return err
 			}
+			gatheringComplete := webrtc.GatheringCompletePromise(peer)
 			if err := peer.SetLocalDescription(answer); err != nil {
 				return err
 			}
-			if err := writeSignal(signalMessage{Type: "answer", SDP: answer.SDP}); err != nil {
+			select {
+			case <-gatheringComplete:
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(12 * time.Second):
+				return errors.New("ICE gathering timed out")
+			}
+			local := peer.LocalDescription()
+			if local == nil {
+				return errors.New("local SDP unavailable after ICE gathering")
+			}
+			if err := writeSignal(signalMessage{Type: "answer", SDP: local.SDP}); err != nil {
 				return err
 			}
 		case "ice":
