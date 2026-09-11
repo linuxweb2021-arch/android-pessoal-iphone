@@ -12,7 +12,7 @@ struct LoginView: View {
                 Image(systemName: "iphone.gen3.radiowaves.left.and.right")
                     .font(.system(size: 58))
                     .foregroundStyle(.cyan)
-                Text("Android Pessoal")
+                Text("PNHX")
                     .font(.largeTitle.bold())
                 Text("Acesse seu Android persistente pelo iPhone.")
                     .multilineTextAlignment(.center)

@@ -1,4 +1,4 @@
-# Android Pessoal no iPhone
+# PNHX — Android pessoal no iPhone
 
 Aplicativo nativo para acessar um único Android persistente hospedado na VPS pelo iPhone. A API autentica o usuário e autoriza uma sessão; o gateway roda na mesma VPS do Android e envia H.264/Opus diretamente ao iPhone por WebRTC. O controle usa um DataChannel confiável e o protocolo binário do scrcpy 3.3.4.
 
@@ -77,8 +77,8 @@ Os perfis são aplicados no início da sessão:
 
 O workflow `.github/workflows/ci.yml` usa `macos-15`, Xcode 16.4, XcodeGen 2.46.0 e WebRTC 152.0.0. O artifact contém:
 
-- `AndroidPessoal-unsigned.ipa`;
-- `AndroidPessoal-unsigned.ipa.sha256`;
+- `PNHX.ipa`;
+- `PNHX.ipa.sha256`;
 - `manifest.json` com bundle, versão, arquitetura e frameworks.
 
 A IPA não possui assinatura. Faça a assinatura e instalação local pelo Sideloadly. Nenhum Apple ID, certificado, senha, chave SSH ou segredo de servidor entra no repositório ou workflow.

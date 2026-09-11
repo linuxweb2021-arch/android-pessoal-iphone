@@ -29,7 +29,7 @@ targets:
     info:
       path: AndroidPessoal/Info.plist
       properties:
-        CFBundleDisplayName: Android Pessoal
+        CFBundleDisplayName: PNHX
         NSMicrophoneUsageDescription: O áudio é usado somente para reproduzir o som do Android remoto pela conexão WebRTC.
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
