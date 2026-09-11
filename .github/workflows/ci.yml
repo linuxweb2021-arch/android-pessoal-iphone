@@ -1,0 +1,82 @@
+name: Build and verify
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "protocol/**"
+      - "ios/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/ci.yml"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: "1.27.1"
+          cache: true
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go build ./cmd/api ./cmd/gateway
+
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Select Xcode 16.4
+        uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd
+        with:
+          xcode-version: "16.4"
+      - name: Install pinned XcodeGen
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip \
+            --output /tmp/xcodegen.zip
+          echo "4d9e2aa76e4f57e604836189f84704671ec46cbaf95ebb0cadbd49d2c9a66806  /tmp/xcodegen.zip" | shasum -a 256 --check
+          unzip -q /tmp/xcodegen.zip -d /tmp/xcodegen
+          /tmp/xcodegen/xcodegen/bin/xcodegen generate --spec ios/project.yml --project ios
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project ios/AndroidPessoal.xcodeproj -scheme AndroidPessoal
+      - name: Compile application and tests for simulator
+        run: |
+          xcodebuild build-for-testing \
+            -project ios/AndroidPessoal.xcodeproj \
+            -scheme AndroidPessoal \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/simulator \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Build unsigned device application
+        run: |
+          xcodebuild build \
+            -project ios/AndroidPessoal.xcodeproj \
+            -scheme AndroidPessoal \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+      - name: Inspect and package IPA
+        shell: bash
+        run: scripts/package-ipa.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AndroidPessoal-unsigned-${{ github.run_number }}
+          path: |
+            dist/AndroidPessoal-unsigned.ipa
+            dist/AndroidPessoal-unsigned.ipa.sha256
+            dist/manifest.json
+          if-no-files-found: error
+          retention-days: 14

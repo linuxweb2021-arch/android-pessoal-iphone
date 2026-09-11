@@ -1,0 +1,59 @@
+name: AndroidPessoal
+options:
+  minimumXcodeGenVersion: 2.43.0
+  deploymentTarget:
+    iOS: "16.0"
+packages:
+  WebRTC:
+    url: https://github.com/stasel/WebRTC.git
+    exactVersion: 152.0.0
+targets:
+  AndroidPessoal:
+    type: application
+    platform: iOS
+    sources:
+      - AndroidPessoal
+    dependencies:
+      - package: WebRTC
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vitorfulll.androidpessoal
+        PRODUCT_NAME: AndroidPessoal
+        SWIFT_VERSION: 5.0
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+    info:
+      path: AndroidPessoal/Info.plist
+      properties:
+        CFBundleDisplayName: Android Pessoal
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIRequiresFullScreen: true
+        ITSAppUsesNonExemptEncryption: false
+  AndroidPessoalTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - AndroidPessoalTests
+    dependencies:
+      - target: AndroidPessoal
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.vitorfulll.androidpessoal.tests
+schemes:
+  AndroidPessoal:
+    build:
+      targets:
+        AndroidPessoal: all
+        AndroidPessoalTests: [test]
+    test:
+      targets:
+        - AndroidPessoalTests
