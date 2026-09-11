@@ -70,7 +70,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO
       - name: Inspect and package IPA
         shell: bash
-        run: scripts/package-ipa.sh
+        run: bash scripts/package-ipa.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: AndroidPessoal-unsigned-${{ github.run_number }}
