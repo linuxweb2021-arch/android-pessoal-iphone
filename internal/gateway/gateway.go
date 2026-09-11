@@ -211,6 +211,7 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 	go readRTCP(ctx, audioSender, nil)
 	go streamVideo(ctx, android, video, g.log)
 	go streamAudio(ctx, android, audio, g.log)
+	go logPeerStats(ctx, peer, g.log)
 
 	for {
 		_, raw, err := connection.ReadMessage()
@@ -251,6 +252,42 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 		case "ice":
 			if err := peer.AddICECandidate(webrtc.ICECandidateInit{Candidate: message.Candidate, SDPMid: message.SDPMid, SDPMLineIndex: message.SDPMLineIndex}); err != nil {
 				return err
+			}
+		}
+	}
+}
+
+func logPeerStats(ctx context.Context, peer *webrtc.PeerConnection, logger *slog.Logger) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			for _, entry := range peer.GetStats() {
+				switch stat := entry.(type) {
+				case webrtc.ICECandidatePairStats:
+					if stat.Nominated {
+						logger.Info("WebRTC network stats", "rtt_ms", stat.CurrentRoundTripTime*1000,
+							"available_out_mbps", stat.AvailableOutgoingBitrate/1_000_000,
+							"bytes_sent", stat.BytesSent, "bytes_received", stat.BytesReceived)
+					}
+				case webrtc.RemoteInboundRTPStreamStats:
+					if stat.Kind == "video" {
+						logger.Info("WebRTC receiver stats", "rtt_ms", stat.RoundTripTime*1000,
+							"jitter_ms", stat.Jitter*1000, "packets_lost", stat.PacketsLost,
+							"fraction_lost", stat.FractionLost, "nack", stat.NACKCount,
+							"pli", stat.PLICount, "fir", stat.FIRCount)
+					}
+				case webrtc.OutboundRTPStreamStats:
+					if stat.Kind == "video" {
+						logger.Info("WebRTC video stats", "bytes_sent", stat.BytesSent,
+							"packets_sent", stat.PacketsSent, "packets_discarded", stat.PacketsDiscardedOnSend,
+							"retransmitted", stat.RetransmittedPacketsSent, "nack", stat.NACKCount,
+							"pli", stat.PLICount, "frames_sent", stat.FramesSent, "fps", stat.FramesPerSecond)
+					}
+				}
 			}
 		}
 	}
