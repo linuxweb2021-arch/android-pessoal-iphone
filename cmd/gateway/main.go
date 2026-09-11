@@ -43,6 +43,7 @@ func loadConfig() (gateway.Config, error) {
 		APIBaseURL:    os.Getenv("ANDROID_API_BASE_URL"),
 		ExecutorToken: os.Getenv("ANDROID_EXECUTOR_TOKEN"),
 		ICEServers:    ice,
+		ICEUDPPort:    integer("ANDROID_ICE_UDP_PORT", 25000),
 		Scrcpy: scrcpy.Config{
 			ADBPath: env("ANDROID_ADB_PATH", "adb"), Serial: os.Getenv("ANDROID_ADB_SERIAL"),
 			ServerPath: os.Getenv("ANDROID_SCRCPY_SERVER_PATH"), LocalPort: integer("ANDROID_SCRCPY_PORT", 27183),

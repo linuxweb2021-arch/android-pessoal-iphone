@@ -1,0 +1,24 @@
+[Unit]
+Description=Android Pessoal authentication and signaling API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/Appdata/android
+EnvironmentFile=/root/Appdata/android/secrets/api.env
+ExecStart=/root/Appdata/android/bin/android-api
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/root/Appdata/android/data/auth
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

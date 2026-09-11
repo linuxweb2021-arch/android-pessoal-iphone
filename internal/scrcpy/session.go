@@ -107,15 +107,21 @@ func Start(ctx context.Context, cfg Config, logger *slog.Logger) (*Session, erro
 	if err != nil {
 		return nil, err
 	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start scrcpy server: %w", err)
 	}
-	go func() {
-		scanner := bufio.NewScanner(stderr)
+	logStream := func(reader io.Reader) {
+		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			logger.Info("scrcpy", "message", scanner.Text())
 		}
-	}()
+	}
+	go logStream(stderr)
+	go logStream(stdout)
 
 	s := &Session{cfg: cfg, log: logger, process: cmd, activePointers: make(map[uint32]struct{})}
 	cleanup := func(err error) (*Session, error) {
@@ -123,49 +129,62 @@ func Start(ctx context.Context, cfg Config, logger *slog.Logger) (*Session, erro
 		return nil, err
 	}
 	deadline := time.Now().Add(cfg.StartupTimeout)
-	s.video, err = dialUntil(ctx, cfg.LocalPort, deadline)
-	if err != nil {
-		return cleanup(fmt.Errorf("connect video socket: %w", err))
-	}
-	s.audio, err = dialUntil(ctx, cfg.LocalPort, deadline)
-	if err != nil {
-		return cleanup(fmt.Errorf("connect audio socket: %w", err))
-	}
-	s.control, err = dialUntil(ctx, cfg.LocalPort, deadline)
-	if err != nil {
-		return cleanup(fmt.Errorf("connect control socket: %w", err))
-	}
-
 	var videoMeta [12]byte
-	if _, err := io.ReadFull(s.video, videoMeta[:]); err != nil {
-		return cleanup(fmt.Errorf("read video metadata: %w", err))
+	var audioMeta [4]byte
+	for time.Now().Before(deadline) {
+		s.video, s.audio, s.control, err = dialSocketGroup(ctx, cfg.LocalPort)
+		if err == nil {
+			_ = s.video.SetReadDeadline(time.Now().Add(time.Second))
+			_ = s.audio.SetReadDeadline(time.Now().Add(time.Second))
+			_, videoErr := io.ReadFull(s.video, videoMeta[:])
+			_, audioErr := io.ReadFull(s.audio, audioMeta[:])
+			if videoErr == nil && audioErr == nil {
+				_ = s.video.SetReadDeadline(time.Time{})
+				_ = s.audio.SetReadDeadline(time.Time{})
+				break
+			}
+			err = fmt.Errorf("video metadata: %v; audio metadata: %v", videoErr, audioErr)
+		}
+		for _, conn := range []net.Conn{s.video, s.audio, s.control} {
+			if conn != nil {
+				_ = conn.Close()
+			}
+		}
+		s.video, s.audio, s.control = nil, nil, nil
+		select {
+		case <-ctx.Done():
+			return cleanup(ctx.Err())
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+	if s.video == nil {
+		return cleanup(fmt.Errorf("connect scrcpy sockets: %w", err))
 	}
 	s.Width = binary.BigEndian.Uint32(videoMeta[4:8])
 	s.Height = binary.BigEndian.Uint32(videoMeta[8:12])
-	var audioMeta [4]byte
-	if _, err := io.ReadFull(s.audio, audioMeta[:]); err != nil {
-		return cleanup(fmt.Errorf("read audio metadata: %w", err))
-	}
 	go s.watchTouches(ctx)
 	return s, nil
 }
 
-func dialUntil(ctx context.Context, port int, deadline time.Time) (net.Conn, error) {
+func dialSocketGroup(ctx context.Context, port int) (net.Conn, net.Conn, net.Conn, error) {
 	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-	var last error
-	for time.Now().Before(deadline) {
-		conn, err := (&net.Dialer{Timeout: 500 * time.Millisecond}).DialContext(ctx, "tcp", address)
-		if err == nil {
-			return conn, nil
-		}
-		last = err
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(100 * time.Millisecond):
-		}
+	dialer := &net.Dialer{Timeout: 500 * time.Millisecond}
+	video, err := dialer.DialContext(ctx, "tcp", address)
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	return nil, last
+	audio, err := dialer.DialContext(ctx, "tcp", address)
+	if err != nil {
+		video.Close()
+		return nil, nil, nil, err
+	}
+	control, err := dialer.DialContext(ctx, "tcp", address)
+	if err != nil {
+		video.Close()
+		audio.Close()
+		return nil, nil, nil, err
+	}
+	return video, audio, control, nil
 }
 
 func (s *Session) ReadVideo() (Packet, error) { return readPacket(s.video) }

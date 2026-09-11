@@ -22,7 +22,7 @@ final class AppModel: ObservableObject {
     private(set) var webRTC: WebRTCClient?
 
     init() {
-        serverURL = UserDefaults.standard.string(forKey: "serverURL") ?? "https://android.example.invalid"
+        serverURL = UserDefaults.standard.string(forKey: "serverURL") ?? "https://android.80-241-216-204.sslip.io"
     }
 
     func signIn(password: String) async {

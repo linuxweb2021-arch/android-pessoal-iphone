@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,6 +26,7 @@ type Config struct {
 	ExecutorToken string
 	ICEServers    []webrtc.ICEServer
 	Scrcpy        scrcpy.Config
+	ICEUDPPort    int
 }
 
 type Gateway struct {
@@ -123,7 +125,20 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 	}
 	defer connection.Close()
 
-	peer, err := webrtc.NewPeerConnection(webrtc.Configuration{ICEServers: g.cfg.ICEServers})
+	var api *webrtc.API
+	if g.cfg.ICEUDPPort > 0 {
+		udpConnection, err := net.ListenUDP("udp4", &net.UDPAddr{Port: g.cfg.ICEUDPPort})
+		if err != nil {
+			return fmt.Errorf("listen ICE UDP: %w", err)
+		}
+		defer udpConnection.Close()
+		settings := webrtc.SettingEngine{}
+		settings.SetICEUDPMux(webrtc.NewICEUDPMux(nil, udpConnection))
+		api = webrtc.NewAPI(webrtc.WithSettingEngine(settings))
+	} else {
+		api = webrtc.NewAPI()
+	}
+	peer, err := api.NewPeerConnection(webrtc.Configuration{ICEServers: g.cfg.ICEServers})
 	if err != nil {
 		return err
 	}

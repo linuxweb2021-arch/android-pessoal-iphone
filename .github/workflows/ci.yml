@@ -44,7 +44,7 @@ jobs:
           curl --fail --location --silent --show-error \
             https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip \
             --output /tmp/xcodegen.zip
-          echo "4d9e2aa76e4f57e604836189f84704671ec46cbaf95ebb0cadbd49d2c9a66806  /tmp/xcodegen.zip" | shasum -a 256 --check
+          echo "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806  /tmp/xcodegen.zip" | shasum -a 256 --check
           unzip -q /tmp/xcodegen.zip -d /tmp/xcodegen
           /tmp/xcodegen/xcodegen/bin/xcodegen generate --spec ios/project.yml --project ios
       - name: Resolve Swift packages

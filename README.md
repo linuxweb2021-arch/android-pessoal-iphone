@@ -1,6 +1,6 @@
 # Android Pessoal no iPhone
 
-Aplicativo nativo para acessar um único Android persistente pelo iPhone. A API autentica o usuário e autoriza uma sessão; o gateway fica ao lado do Android e envia H.264/Opus diretamente ao iPhone por WebRTC. O controle usa um DataChannel confiável e o protocolo binário do scrcpy 3.3.4.
+Aplicativo nativo para acessar um único Android persistente hospedado na VPS pelo iPhone. A API autentica o usuário e autoriza uma sessão; o gateway roda na mesma VPS do Android e envia H.264/Opus diretamente ao iPhone por WebRTC. O controle usa um DataChannel confiável e o protocolo binário do scrcpy 3.3.4.
 
 ## Estado
 
@@ -9,14 +9,15 @@ Aplicativo nativo para acessar um único Android persistente pelo iPhone. A API 
 - Gateway Go/Pion com H.264, Opus, ICE configurável e integração scrcpy 3.3.4.
 - Cliente SwiftUI/UIKit para iOS 16+, vídeo proporcional, áudio, teclado por clipboard e multitoque.
 - GitHub Actions para testar Go, compilar Swift e gerar uma IPA `arm64` sem assinatura.
+- ReDroid Android 14 fixado por digest, persistente e restrito ao loopback na VPS.
 
-O código precisa passar pelo primeiro build macOS do workflow e ainda depende de um Android compatível conectado por ADB. Os testes no iPhone, áudio real, apps e metas de latência só podem ser aprovados após essa integração física.
+O Android 14 base já inicializa na VPS. O código ainda precisa passar pelo build macOS e os testes no iPhone, áudio, apps e metas de latência só podem ser aprovados após a integração completa.
 
 ## Componentes
 
 ```text
-iPhone ── HTTPS/WSS ── API Go/SQLite
-   └──────── WebRTC direto/TURN ─────── Gateway Go/Pion ── scrcpy ── Android
+iPhone ── HTTPS/WSS ── VPS: API Go/SQLite
+   └──────── WebRTC direto/TURN ── VPS: Gateway Go/Pion ── scrcpy ── ReDroid
 ```
 
 O fechamento da IPA encerra a transmissão e preserva o Android. A API e o gateway não oferecem shell remoto ou ADB público.

@@ -1,0 +1,26 @@
+[Unit]
+Description=Android Pessoal WebRTC and scrcpy gateway
+After=network-online.target docker.service android-api.service
+Wants=network-online.target
+Requires=android-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/Appdata/android
+EnvironmentFile=/root/Appdata/android/secrets/gateway.env
+ExecStartPre=/usr/bin/adb connect 127.0.0.1:5556
+ExecStart=/root/Appdata/android/bin/android-gateway
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/root/.android /root/Appdata/android/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

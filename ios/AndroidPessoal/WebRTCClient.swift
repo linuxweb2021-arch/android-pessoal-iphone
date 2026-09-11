@@ -43,7 +43,7 @@ final class WebRTCClient: NSObject {
         let configuration = RTCConfiguration()
         configuration.sdpSemantics = .unifiedPlan
         configuration.continualGatheringPolicy = .gatherContinually
-        configuration.iceServers = []
+        configuration.iceServers = [RTCIceServer(urlStrings: ["stun:stun.cloudflare.com:3478"])]
         let constraints = RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)
         guard let connection = factory.peerConnection(with: configuration, constraints: constraints, delegate: self) else {
             throw AppError.server("Não foi possível iniciar o WebRTC.")
