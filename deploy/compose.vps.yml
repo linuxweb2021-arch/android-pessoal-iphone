@@ -35,3 +35,4 @@ services:
 networks:
   android-personal:
     name: android-personal
+    external: true

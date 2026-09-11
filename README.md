@@ -11,7 +11,7 @@ Aplicativo nativo para acessar um único Android persistente hospedado na VPS pe
 - GitHub Actions para testar Go, compilar Swift e gerar uma IPA `arm64` sem assinatura.
 - ReDroid Android 14 fixado por digest, persistente e restrito ao loopback na VPS.
 
-O Android 14 base já inicializa na VPS. O código ainda precisa passar pelo build macOS e os testes no iPhone, áudio, apps e metas de latência só podem ser aprovados após a integração completa.
+O Android 14 base já inicializa na VPS. O build macOS gera uma IPA `arm64` válida sem assinatura. Os testes no iPhone, áudio, apps e metas de latência só podem ser aprovados após a instalação e a integração física.
 
 ## Componentes
 
