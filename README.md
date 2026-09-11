@@ -9,9 +9,11 @@ Aplicativo nativo para acessar um único Android persistente hospedado na VPS pe
 - Gateway Go/Pion com H.264, Opus, ICE configurável e integração scrcpy 3.3.4.
 - Cliente SwiftUI/UIKit para iOS 16+, vídeo proporcional, áudio, teclado por clipboard e multitoque.
 - GitHub Actions para testar Go, compilar Swift e gerar uma IPA `arm64` sem assinatura.
-- ReDroid Android 14 fixado por digest, persistente e restrito ao loopback na VPS.
+- ReDroid Android 14 fixado por digest, persistente e restrito ao loopback na VPS, com uma camada mínima e reproduzível da Google Play para x86_64.
 
 O Android 14 base já inicializa na VPS. O build macOS gera uma IPA `arm64` válida sem assinatura. Os testes no iPhone, áudio, apps e metas de latência só podem ser aprovados após a instalação e a integração física.
+
+A imagem Google Play é gerada na VPS por `scripts/build-redroid-gapps.sh`. O script verifica o SHA-256 do pacote antes de criar `local/redroid:14-gapps-minimal-20250330`; credenciais Google e dados do Android permanecem somente no volume privado da VPS.
 
 ## Componentes
 

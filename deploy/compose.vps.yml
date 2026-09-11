@@ -1,6 +1,6 @@
 services:
   android:
-    image: redroid/redroid@sha256:68ae34dfbdb1000687d89691f12b9e17daa1b5c3ce528ada7e9d007090daab86
+    image: local/redroid:14-gapps-minimal-20250330
     container_name: android-runtime
     hostname: android-runtime
     privileged: true
