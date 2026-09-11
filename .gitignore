@@ -1,6 +1,7 @@
 /data/
 /dist/
 /build/
+/.cache/
 /ios/AndroidPessoal.xcodeproj/
 /.env
 *.exe

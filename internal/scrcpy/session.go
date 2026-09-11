@@ -99,6 +99,7 @@ func Start(ctx context.Context, cfg Config, logger *slog.Logger) (*Session, erro
 		"com.genymobile.scrcpy.Server", Version,
 		fmt.Sprintf("scid=%08x", scid), "log_level=info", "tunnel_forward=true",
 		"send_dummy_byte=false", "send_device_meta=false", "video_codec=h264", "audio_codec=opus",
+		"video_codec_options=i-frame-interval=1",
 		"max_size=" + strconv.Itoa(cfg.MaxSize), "max_fps=" + strconv.Itoa(cfg.MaxFPS),
 		"video_bit_rate=" + strconv.Itoa(cfg.VideoBitrate),
 	}

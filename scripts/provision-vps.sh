@@ -34,8 +34,8 @@ ANDROID_ADB_SERIAL=127.0.0.1:5556
 ANDROID_SCRCPY_SERVER_PATH=$base/bin/scrcpy-server-v3.3.4
 ANDROID_SCRCPY_PORT=27183
 ANDROID_MAX_SIZE=1280
-ANDROID_MAX_FPS=60
-ANDROID_VIDEO_BITRATE=6000000
+ANDROID_MAX_FPS=45
+ANDROID_VIDEO_BITRATE=5000000
 ANDROID_ICE_SERVERS_JSON=[{"urls":["stun:stun.cloudflare.com:3478"]}]
 ANDROID_ICE_UDP_PORT=25000
 EOF
@@ -58,4 +58,5 @@ curl --fail --silent http://127.0.0.1:18080/healthz >/dev/null
 # was written as an Argon2id hash to SQLite.
 sed -i '/^ANDROID_BOOTSTRAP_PASSWORD=/d' "$base/secrets/api.env"
 systemctl restart android-api.service
+bash "$base/runtime/tune-android-vps.sh"
 systemctl enable --now android-gateway.service

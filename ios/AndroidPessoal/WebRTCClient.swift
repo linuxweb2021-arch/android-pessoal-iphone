@@ -18,6 +18,7 @@ final class WebRTCClient: NSObject {
     private let factory: RTCPeerConnectionFactory
     private var peerConnection: RTCPeerConnection?
     private var dataChannel: RTCDataChannel?
+    private var touchDataChannel: RTCDataChannel?
     private var socket: URLSessionWebSocketTask?
     private var remoteVideoTrack: RTCVideoTrack?
     private var remoteAudioTrack: RTCAudioTrack?
@@ -65,6 +66,12 @@ final class WebRTCClient: NSObject {
         dataChannel = connection.dataChannel(forLabel: "control.v1", configuration: channelConfig)
         dataChannel?.delegate = self
 
+        let touchChannelConfig = RTCDataChannelConfiguration()
+        touchChannelConfig.isOrdered = false
+        touchChannelConfig.maxRetransmits = 0
+        touchDataChannel = connection.dataChannel(forLabel: "touch.v1", configuration: touchChannelConfig)
+        touchDataChannel?.delegate = self
+
         Task { await receiveSignals() }
         onState?("Negociando mídia…")
         let offer = try await createOffer(connection)
@@ -74,6 +81,7 @@ final class WebRTCClient: NSObject {
 
     func disconnect() async {
         sendCancelAll()
+        touchDataChannel?.close()
         dataChannel?.close()
         peerConnection?.close()
         socket?.cancel(with: .normalClosure, reason: nil)
@@ -92,9 +100,17 @@ final class WebRTCClient: NSObject {
     }
 
     func sendControl(_ message: ControlEnvelope) {
-        guard let channel = dataChannel, channel.readyState == .open,
-              let data = try? JSONEncoder().encode(message) else { return }
-        _ = channel.sendData(RTCDataBuffer(data: data, isBinary: false))
+        guard let data = try? JSONEncoder().encode(message) else { return }
+        let buffer = RTCDataBuffer(data: data, isBinary: false)
+        if touchDataChannel?.readyState == .open {
+            _ = touchDataChannel?.sendData(buffer)
+        } else if dataChannel?.readyState == .open {
+            _ = dataChannel?.sendData(buffer)
+            return
+        }
+        if message.action == "down" || message.action == "up" || message.action == "cancel" {
+            _ = dataChannel?.sendData(buffer)
+        }
     }
 
     func sendAndroidKey(_ key: String) {
@@ -225,7 +241,11 @@ extension WebRTCClient: RTCPeerConnectionDelegate {
     }
     func peerConnection(_ peerConnection: RTCPeerConnection, didRemove candidates: [RTCIceCandidate]) {}
     func peerConnection(_ peerConnection: RTCPeerConnection, didOpen dataChannel: RTCDataChannel) {
-        self.dataChannel = dataChannel
+        if dataChannel.label == "touch.v1" {
+            self.touchDataChannel = dataChannel
+        } else {
+            self.dataChannel = dataChannel
+        }
         dataChannel.delegate = self
     }
     func peerConnection(_ peerConnection: RTCPeerConnection, didAdd rtpReceiver: RTCRtpReceiver, streams: [RTCMediaStream]) {

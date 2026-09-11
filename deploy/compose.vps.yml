@@ -5,8 +5,11 @@ services:
     hostname: android-runtime
     privileged: true
     restart: unless-stopped
-    cpus: 3.0
-    mem_limit: 4g
+    cpus: 5.0
+    cpu_shares: 2048
+    mem_limit: 6g
+    mem_reservation: 4g
+    shm_size: 1g
     pids_limit: 4096
     ports:
       - "127.0.0.1:5556:5555"
@@ -18,7 +21,7 @@ services:
       - androidboot.redroid_width=720
       - androidboot.redroid_height=1280
       - androidboot.redroid_dpi=320
-      - androidboot.redroid_fps=30
+      - androidboot.redroid_fps=45
     networks:
       - android-personal
 

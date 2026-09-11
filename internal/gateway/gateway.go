@@ -96,11 +96,11 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 	scrcpyConfig := g.cfg.Scrcpy
 	switch remote.Quality {
 	case "economy":
-		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 960, 30, 2_500_000
+		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 960, 24, 2_000_000
 	case "quality":
-		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1920, 60, 10_000_000
+		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1280, 45, 7_000_000
 	default:
-		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1280, 60, 6_000_000
+		scrcpyConfig.MaxSize, scrcpyConfig.MaxFPS, scrcpyConfig.VideoBitrate = 1280, 45, 5_000_000
 	}
 	android, err := scrcpy.Start(ctx, scrcpyConfig, g.log)
 	if err != nil {
@@ -179,12 +179,17 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 	}
 	peer.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		g.log.Info("WebRTC state", "session", remote.ID, "state", state.String())
+		if state == webrtc.PeerConnectionStateConnected {
+			if err := android.ResetVideo(); err != nil {
+				g.log.Warn("request initial keyframe", "error", err)
+			}
+		}
 		if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
 			cancel()
 		}
 	})
 	peer.OnDataChannel(func(channel *webrtc.DataChannel) {
-		if channel.Label() != "control.v1" {
+		if channel.Label() != "control.v1" && channel.Label() != "touch.v1" {
 			channel.Close()
 			return
 		}
@@ -278,6 +283,7 @@ func readRTCP(ctx context.Context, sender *webrtc.RTPSender, keyframe func() err
 func streamVideo(ctx context.Context, source *scrcpy.Session, track *webrtc.TrackLocalStaticSample, logger *slog.Logger) {
 	var config []byte
 	var previous time.Duration
+	firstFrame := true
 	for {
 		packet, err := source.ReadVideo()
 		if err != nil {
@@ -291,6 +297,10 @@ func streamVideo(ctx context.Context, source *scrcpy.Session, track *webrtc.Trac
 		data := packet.Data
 		if packet.KeyFrame && len(config) > 0 {
 			data = append(append(make([]byte, 0, len(config)+len(data)), config...), data...)
+		}
+		if firstFrame {
+			logger.Info("first video frame", "keyframe", packet.KeyFrame, "bytes", len(data), "width", source.Width, "height", source.Height)
+			firstFrame = false
 		}
 		duration := 16 * time.Millisecond
 		if previous > 0 && packet.PTS > previous && packet.PTS-previous < time.Second {
