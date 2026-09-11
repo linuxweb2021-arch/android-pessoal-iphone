@@ -167,7 +167,7 @@ final class WebRTCClient: NSObject {
     }
 
     private func setLocalDescription(_ description: RTCSessionDescription, on connection: RTCPeerConnection) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             connection.setLocalDescription(description) { error in
                 if let error { continuation.resume(throwing: error) }
                 else { continuation.resume(returning: ()) }
@@ -176,7 +176,7 @@ final class WebRTCClient: NSObject {
     }
 
     private func setRemoteDescription(_ description: RTCSessionDescription, on connection: RTCPeerConnection) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             connection.setRemoteDescription(description) { error in
                 if let error { continuation.resume(throwing: error) }
                 else { continuation.resume(returning: ()) }
@@ -185,7 +185,7 @@ final class WebRTCClient: NSObject {
     }
 
     private func add(candidate: RTCIceCandidate, to connection: RTCPeerConnection) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             connection.add(candidate) { error in
                 if let error { continuation.resume(throwing: error) }
                 else { continuation.resume(returning: ()) }

@@ -1,6 +1,6 @@
 import UIKit
 
-struct ControlEnvelope: Codable {
+struct ControlEnvelope: Encodable {
     let version = "control.v1"
     let sessionId: String
     let generation: Int64
