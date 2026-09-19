@@ -176,7 +176,7 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	previous, _ := s.store.ActiveSession(r.Context(), time.Now())
-	session, err := s.store.CreateSession(r.Context(), username, input.Quality, 2*time.Hour, time.Now())
+	session, err := s.store.CreateSession(r.Context(), username, input.Quality, s.cfg.SessionTTL, time.Now())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "não foi possível criar a sessão remota")
 		return

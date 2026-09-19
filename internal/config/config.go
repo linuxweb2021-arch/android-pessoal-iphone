@@ -16,6 +16,7 @@ type Config struct {
 	BootstrapPassword string
 	AccessTTL         time.Duration
 	RefreshTTL        time.Duration
+	SessionTTL        time.Duration
 }
 
 func Load() (Config, error) {
@@ -28,6 +29,7 @@ func Load() (Config, error) {
 		BootstrapPassword: os.Getenv("ANDROID_BOOTSTRAP_PASSWORD"),
 		AccessTTL:         minutes("ANDROID_ACCESS_TTL_MINUTES", 10),
 		RefreshTTL:        hours("ANDROID_REFRESH_TTL_HOURS", 24*30),
+		SessionTTL:        hours("ANDROID_SESSION_TTL_HOURS", 12),
 	}
 	if len(cfg.JWTSecret) < 32 {
 		return Config{}, errors.New("ANDROID_JWT_SECRET must contain at least 32 bytes")

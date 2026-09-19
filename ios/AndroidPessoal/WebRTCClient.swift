@@ -26,6 +26,7 @@ final class WebRTCClient: NSObject {
     private weak var renderer: RTCVideoRenderer?
     private var pendingRemoteCandidates: [RTCIceCandidate] = []
     private var remoteDescriptionReady = false
+    private var interruptionObserver: NSObjectProtocol?
 
     init(api: APIClient, session: RemoteSession) {
         self.api = api
@@ -87,6 +88,11 @@ final class WebRTCClient: NSObject {
         dataChannel?.close()
         peerConnection?.close()
         socket?.cancel(with: .normalClosure, reason: nil)
+        if let token = interruptionObserver {
+            NotificationCenter.default.removeObserver(token)
+            interruptionObserver = nil
+        }
+        try? AVAudioSession.sharedInstance().setActive(false)
         await api.deleteSession(id: session.id)
     }
 
@@ -131,11 +137,32 @@ final class WebRTCClient: NSObject {
     /// Routes remote audio to the speaker. Uses only long-stable
     /// AVAudioSession APIs: WebRTC reconfigures the session behind our
     /// back, so plain playback category alone ends up on the earpiece.
+    /// Also subscribes to interruptions (calls, alarms) so playback
+    /// resumes without dropping the session.
     func configurePlaybackAudioSession() {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default, options: [])
         try? session.overrideOutputAudioPort(.speaker)
         try? session.setActive(true)
+        if interruptionObserver == nil {
+            interruptionObserver = NotificationCenter.default.addObserver(
+                forName: AVAudioSession.interruptionNotification,
+                object: session,
+                queue: .main
+            ) { [weak self] note in
+                self?.handleInterruption(note)
+            }
+        }
+    }
+
+    private func handleInterruption(_ note: Notification) {
+        guard let info = note.userInfo,
+              let raw = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        if case .ended = type {
+            // A call or alarm paused us; resume playback, keep the session.
+            configurePlaybackAudioSession()
+        }
     }
 
     private func sendCancelAll() {

@@ -33,6 +33,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSMicrophoneUsageDescription: O áudio é usado somente para reproduzir o som do Android remoto pela conexão WebRTC.
+        UIBackgroundModes:
+          - audio
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
