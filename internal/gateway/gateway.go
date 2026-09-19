@@ -361,10 +361,13 @@ func streamVideo(ctx context.Context, source *scrcpy.Session, track *webrtc.Trac
 }
 
 func streamAudio(ctx context.Context, source *scrcpy.Session, track *webrtc.TrackLocalStaticSample, logger *slog.Logger) {
-	var previous time.Duration
+	// nominalFallback preserves continuity for malformed packets. The RTP
+	// clock must follow encoded audio, never scheduling jitter.
+	const nominalFallback = 20 * time.Millisecond
 	debug := os.Getenv("ANDROID_AUDIO_DEBUG") == "1"
-	var count int
+	var count, malformed int
 	var sumDelta, maxDelta time.Duration
+	var previous time.Duration
 	for {
 		packet, err := source.ReadAudio()
 		if err != nil {
@@ -374,9 +377,16 @@ func streamAudio(ctx context.Context, source *scrcpy.Session, track *webrtc.Trac
 		if packet.Config {
 			continue
 		}
-		duration := 20 * time.Millisecond
-		if previous > 0 && packet.PTS > previous && packet.PTS-previous < time.Second {
-			duration = packet.PTS - previous
+		duration, ok := opusPacketDuration(packet.Data)
+		if !ok {
+			malformed++
+			if malformed == 1 || malformed%500 == 0 {
+				logger.Warn("malformed opus packet, keeping nominal duration", "total", malformed, "bytes", len(packet.Data))
+			}
+			duration = nominalFallback
+		}
+		if previous > 0 && packet.PTS-previous > 250*time.Millisecond {
+			logger.Info("audio gap", "gap_ms", (packet.PTS - previous).Milliseconds())
 		}
 		previous = packet.PTS
 		if debug {
@@ -386,7 +396,7 @@ func streamAudio(ctx context.Context, source *scrcpy.Session, track *webrtc.Trac
 				maxDelta = duration
 			}
 			if count%50 == 0 {
-				logger.Info("audio timing", "packets", count, "avg_ms", float64(sumDelta.Milliseconds())/float64(count), "max_ms", maxDelta.Milliseconds(), "bytes", len(packet.Data))
+				logger.Info("audio timing", "packets", count, "avg_ms", float64(sumDelta.Milliseconds())/float64(count), "max_ms", maxDelta.Milliseconds(), "bytes", len(packet.Data), "malformed", malformed)
 			}
 		}
 		if err := track.WriteSample(media.Sample{Data: packet.Data, Duration: duration}); err != nil {
