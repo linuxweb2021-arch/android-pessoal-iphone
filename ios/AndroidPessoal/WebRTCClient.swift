@@ -39,12 +39,7 @@ final class WebRTCClient: NSObject {
     }
 
     func connect() async throws {
-        // WebRTC playout is muted without a playback audio session
-        // (silent switch + no active category). Configure it before
-        // negotiating so remote audio is audible.
-        let audioSession = AVAudioSession.sharedInstance()
-        try? audioSession.setCategory(.playback, mode: .default, options: [])
-        try? audioSession.setActive(true)
+        configurePlaybackAudioSession()
         let request = try await api.signalRequest(sessionID: session.id)
         let socket = URLSession.shared.webSocketTask(with: request)
         self.socket = socket
@@ -132,6 +127,25 @@ final class WebRTCClient: NSObject {
     }
 
     func setMuted(_ muted: Bool) { remoteAudioTrack?.isEnabled = !muted }
+
+    /// Configures audio for media playback through WebRTC's own session
+    /// object so libwebrtc does not override it behind our back
+    /// (which routes playout to the earpiece / mutes the speaker).
+    /// Falls back to AVAudioSession if the WebRTC wrapper rejects it.
+    func configurePlaybackAudioSession() {
+        let session = RTCAudioSession.sharedInstance()
+        session.lockForConfiguration()
+        defer { session.unlockForConfiguration() }
+        do {
+            try session.setCategory(AVAudioSession.Category.playback.rawValue)
+            try session.setMode(AVAudioSession.Mode.default.rawValue)
+            try session.setActive(true)
+        } catch {
+            let fallback = AVAudioSession.sharedInstance()
+            try? fallback.setCategory(.playback, mode: .default, options: [])
+            try? fallback.setActive(true)
+        }
+    }
 
     private func sendCancelAll() {
         guard let data = try? JSONSerialization.data(withJSONObject: ["version": "control.v1", "action": "cancelAll", "sessionId": session.id, "generation": session.generation]) else { return }
@@ -261,6 +275,9 @@ extension WebRTCClient: RTCPeerConnectionDelegate {
             if let renderer { video.add(renderer) }
         } else if let audio = rtpReceiver.track as? RTCAudioTrack {
             remoteAudioTrack = audio
+            // Re-assert playback routing once the track exists; the audio
+            // device (re)configures the session when streaming starts.
+            configurePlaybackAudioSession()
         }
     }
 }
