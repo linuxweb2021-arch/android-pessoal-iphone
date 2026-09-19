@@ -137,8 +137,11 @@ final class WebRTCClient: NSObject {
         session.lockForConfiguration()
         defer { session.unlockForConfiguration() }
         do {
-            try session.setCategory(AVAudioSession.Category.playback.rawValue)
-            try session.setMode(AVAudioSession.Mode.default.rawValue)
+            try session.setCategory(
+                AVAudioSession.Category.playback.rawValue,
+                mode: AVAudioSession.Mode.default.rawValue,
+                options: []
+            )
             try session.setActive(true)
         } catch {
             let fallback = AVAudioSession.sharedInstance()
