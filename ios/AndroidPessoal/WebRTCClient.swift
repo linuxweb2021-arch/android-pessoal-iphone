@@ -128,26 +128,14 @@ final class WebRTCClient: NSObject {
 
     func setMuted(_ muted: Bool) { remoteAudioTrack?.isEnabled = !muted }
 
-    /// Configures audio for media playback through WebRTC's own session
-    /// object so libwebrtc does not override it behind our back
-    /// (which routes playout to the earpiece / mutes the speaker).
-    /// Falls back to AVAudioSession if the WebRTC wrapper rejects it.
+    /// Routes remote audio to the speaker. Uses only long-stable
+    /// AVAudioSession APIs: WebRTC reconfigures the session behind our
+    /// back, so plain playback category alone ends up on the earpiece.
     func configurePlaybackAudioSession() {
-        let session = RTCAudioSession.sharedInstance()
-        session.lockForConfiguration()
-        defer { session.unlockForConfiguration() }
-        do {
-            try session.setCategory(
-                AVAudioSession.Category.playback.rawValue,
-                mode: AVAudioSession.Mode.default.rawValue,
-                options: []
-            )
-            try session.setActive(true)
-        } catch {
-            let fallback = AVAudioSession.sharedInstance()
-            try? fallback.setCategory(.playback, mode: .default, options: [])
-            try? fallback.setActive(true)
-        }
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [])
+        try? session.overrideOutputAudioPort(.speaker)
+        try? session.setActive(true)
     }
 
     private func sendCancelAll() {
