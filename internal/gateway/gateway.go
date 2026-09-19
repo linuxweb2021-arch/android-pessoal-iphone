@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -361,6 +362,9 @@ func streamVideo(ctx context.Context, source *scrcpy.Session, track *webrtc.Trac
 
 func streamAudio(ctx context.Context, source *scrcpy.Session, track *webrtc.TrackLocalStaticSample, logger *slog.Logger) {
 	var previous time.Duration
+	debug := os.Getenv("ANDROID_AUDIO_DEBUG") == "1"
+	var count int
+	var sumDelta, maxDelta time.Duration
 	for {
 		packet, err := source.ReadAudio()
 		if err != nil {
@@ -375,6 +379,16 @@ func streamAudio(ctx context.Context, source *scrcpy.Session, track *webrtc.Trac
 			duration = packet.PTS - previous
 		}
 		previous = packet.PTS
+		if debug {
+			count++
+			sumDelta += duration
+			if duration > maxDelta {
+				maxDelta = duration
+			}
+			if count%50 == 0 {
+				logger.Info("audio timing", "packets", count, "avg_ms", float64(sumDelta.Milliseconds())/float64(count), "max_ms", maxDelta.Milliseconds(), "bytes", len(packet.Data))
+			}
+		}
 		if err := track.WriteSample(media.Sample{Data: packet.Data, Duration: duration}); err != nil {
 			return
 		}
