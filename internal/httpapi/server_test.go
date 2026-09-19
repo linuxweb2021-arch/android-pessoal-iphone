@@ -24,7 +24,7 @@ func TestLoginAndSingleActiveSession(t *testing.T) {
 	t.Cleanup(func() { _ = database.Close() })
 	cfg := config.Config{
 		JWTSecret: []byte("01234567890123456789012345678901"), ExecutorToken: "executor-token-01234567890123456789",
-		BootstrapUser: "vitorfulll", BootstrapPassword: "senha-de-teste-comprida", AccessTTL: 10 * time.Minute, RefreshTTL: 24 * time.Hour,
+		BootstrapUser: "vitorfulll", BootstrapPassword: "senha-de-teste-comprida", AccessTTL: 10 * time.Minute, RefreshTTL: 24 * time.Hour, SessionTTL: 12 * time.Hour,
 	}
 	server := New(cfg, database, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err := server.Bootstrap(context.Background()); err != nil {
@@ -55,7 +55,7 @@ func TestWrongPasswordIsRejected(t *testing.T) {
 	t.Cleanup(func() { _ = database.Close() })
 	cfg := config.Config{
 		JWTSecret: []byte("01234567890123456789012345678901"), ExecutorToken: "executor-token-01234567890123456789",
-		BootstrapUser: "vitorfulll", BootstrapPassword: "senha-de-teste-comprida", AccessTTL: 10 * time.Minute, RefreshTTL: 24 * time.Hour,
+		BootstrapUser: "vitorfulll", BootstrapPassword: "senha-de-teste-comprida", AccessTTL: 10 * time.Minute, RefreshTTL: 24 * time.Hour, SessionTTL: 12 * time.Hour,
 	}
 	server := New(cfg, database, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err := server.Bootstrap(context.Background()); err != nil {
