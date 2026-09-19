@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import WebRTC
 
@@ -38,6 +39,12 @@ final class WebRTCClient: NSObject {
     }
 
     func connect() async throws {
+        // WebRTC playout is muted without a playback audio session
+        // (silent switch + no active category). Configure it before
+        // negotiating so remote audio is audible.
+        let audioSession = AVAudioSession.sharedInstance()
+        try? audioSession.setCategory(.playback, mode: .default, options: [])
+        try? audioSession.setActive(true)
         let request = try await api.signalRequest(sessionID: session.id)
         let socket = URLSession.shared.webSocketTask(with: request)
         self.socket = socket
