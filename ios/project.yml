@@ -24,8 +24,8 @@ targets:
         SUPPORTS_MACCATALYST: NO
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
-        CURRENT_PROJECT_VERSION: 4
-        MARKETING_VERSION: 1.0.3
+        CURRENT_PROJECT_VERSION: 5
+        MARKETING_VERSION: 1.0.4
     info:
       path: AndroidPessoal/Info.plist
       properties:

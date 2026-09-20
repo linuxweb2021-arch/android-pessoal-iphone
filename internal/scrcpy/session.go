@@ -29,6 +29,7 @@ type Config struct {
 	MaxSize        int
 	MaxFPS         int
 	VideoBitrate   int
+	AudioBitrate   int
 	StartupTimeout time.Duration
 }
 
@@ -74,6 +75,9 @@ func Start(ctx context.Context, cfg Config, logger *slog.Logger) (*Session, erro
 	if cfg.VideoBitrate == 0 {
 		cfg.VideoBitrate = 6_000_000
 	}
+	if cfg.AudioBitrate == 0 {
+		cfg.AudioBitrate = 192_000
+	}
 	if cfg.StartupTimeout == 0 {
 		cfg.StartupTimeout = 15 * time.Second
 	}
@@ -104,6 +108,7 @@ func Start(ctx context.Context, cfg Config, logger *slog.Logger) (*Session, erro
 		"video_codec_options=i-frame-interval=1",
 		"max_size=" + strconv.Itoa(cfg.MaxSize), "max_fps=" + strconv.Itoa(cfg.MaxFPS),
 		"video_bit_rate=" + strconv.Itoa(cfg.VideoBitrate),
+		"audio_bit_rate=" + strconv.Itoa(cfg.AudioBitrate),
 	}
 	cmd := adb(args...)
 	stderr, err := cmd.StderrPipe()

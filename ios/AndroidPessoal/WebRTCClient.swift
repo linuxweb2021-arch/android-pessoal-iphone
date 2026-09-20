@@ -77,7 +77,11 @@ final class WebRTCClient: NSObject {
 
         Task { await receiveSignals() }
         onState?("Negociando mídia…")
-        let offer = try await createOffer(connection)
+        let rawOffer = try await createOffer(connection)
+        let offer = RTCSessionDescription(
+            type: rawOffer.type,
+            sdp: Self.preferStereoOpus(in: rawOffer.sdp)
+        )
         try await setLocalDescription(offer, on: connection)
         try await sendSignal(SignalMessage(type: "offer", sdp: offer.sdp))
     }
@@ -133,6 +137,60 @@ final class WebRTCClient: NSObject {
     }
 
     func setMuted(_ muted: Bool) { remoteAudioTrack?.isEnabled = !muted }
+
+    /// libwebrtc offers Opus as mono unless stereo is explicitly requested in
+    /// fmtp. The Android stream already contains stereo music, so leaving the
+    /// default in place makes the receiver downmix it and can sound hollow.
+    static func preferStereoOpus(in sdp: String) -> String {
+        let separator = sdp.contains("\r\n") ? "\r\n" : "\n"
+        var lines = sdp.components(separatedBy: separator)
+        let opusPayloads = Set(lines.compactMap { line -> String? in
+            guard line.lowercased().hasPrefix("a=rtpmap:"),
+                  let space = line.firstIndex(of: " ") else { return nil }
+            let codec = line[line.index(after: space)...].lowercased()
+            guard codec.hasPrefix("opus/48000/") else { return nil }
+            return String(line[line.index(line.startIndex, offsetBy: 9)..<space])
+        })
+        guard !opusPayloads.isEmpty else { return sdp }
+
+        let preferred = [
+            "stereo": "1",
+            "sprop-stereo": "1",
+            "maxplaybackrate": "48000",
+            "maxaveragebitrate": "192000"
+        ]
+        var updatedPayloads = Set<String>()
+        for index in lines.indices {
+            guard lines[index].lowercased().hasPrefix("a=fmtp:"),
+                  let space = lines[index].firstIndex(of: " ") else { continue }
+            let payload = String(lines[index][lines[index].index(lines[index].startIndex, offsetBy: 7)..<space])
+            guard opusPayloads.contains(payload) else { continue }
+
+            var parameters: [String] = lines[index][lines[index].index(after: space)...]
+                .split(separator: ";", omittingEmptySubsequences: true)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+            parameters.removeAll { parameter in
+                guard let equals = parameter.firstIndex(of: "=") else { return false }
+                return preferred.keys.contains(parameter[..<equals].lowercased())
+            }
+            for key in ["stereo", "sprop-stereo", "maxplaybackrate", "maxaveragebitrate"] {
+                parameters.append("\(key)=\(preferred[key]!)")
+            }
+            lines[index] = "a=fmtp:\(payload) \(parameters.joined(separator: ";"))"
+            updatedPayloads.insert(payload)
+        }
+
+        for payload in opusPayloads.subtracting(updatedPayloads) {
+            guard let rtpmapIndex = lines.firstIndex(where: {
+                $0.lowercased().hasPrefix("a=rtpmap:\(payload.lowercased()) ")
+            }) else { continue }
+            lines.insert(
+                "a=fmtp:\(payload) stereo=1;sprop-stereo=1;maxplaybackrate=48000;maxaveragebitrate=192000",
+                at: lines.index(after: rtpmapIndex)
+            )
+        }
+        return lines.joined(separator: separator)
+    }
 
     /// Routes remote audio to the speaker. Uses only long-stable
     /// AVAudioSession APIs: WebRTC reconfigures the session behind our

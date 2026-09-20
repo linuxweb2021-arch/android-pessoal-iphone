@@ -48,7 +48,8 @@ func loadConfig() (gateway.Config, error) {
 			ADBPath: env("ANDROID_ADB_PATH", "adb"), Serial: os.Getenv("ANDROID_ADB_SERIAL"),
 			ServerPath: os.Getenv("ANDROID_SCRCPY_SERVER_PATH"), LocalPort: integer("ANDROID_SCRCPY_PORT", 27183),
 			MaxSize: integer("ANDROID_MAX_SIZE", 1280), MaxFPS: integer("ANDROID_MAX_FPS", 60),
-			VideoBitrate: integer("ANDROID_VIDEO_BITRATE", 6_000_000), StartupTimeout: 20 * time.Second,
+			VideoBitrate: integer("ANDROID_VIDEO_BITRATE", 6_000_000),
+			AudioBitrate: integer("ANDROID_AUDIO_BITRATE", 192_000), StartupTimeout: 20 * time.Second,
 		},
 	}, nil
 }

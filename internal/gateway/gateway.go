@@ -36,6 +36,11 @@ type Gateway struct {
 	http *http.Client
 }
 
+var androidAudioCodec = webrtc.RTPCodecCapability{
+	MimeType: webrtc.MimeTypeOpus, ClockRate: 48_000, Channels: 2,
+	SDPFmtpLine: "minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxplaybackrate=48000;maxaveragebitrate=192000",
+}
+
 func New(cfg Config, logger *slog.Logger) *Gateway {
 	return &Gateway{cfg: cfg, log: logger, http: &http.Client{Timeout: 10 * time.Second}}
 }
@@ -160,10 +165,7 @@ func (g *Gateway) serveSession(parent context.Context, remote store.Session) err
 	if err != nil {
 		return err
 	}
-	audio, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
-		MimeType: webrtc.MimeTypeOpus, ClockRate: 48_000, Channels: 2,
-		SDPFmtpLine: "minptime=10;useinbandfec=1",
-	}, "audio", "android")
+	audio, err := webrtc.NewTrackLocalStaticSample(androidAudioCodec, "audio", "android")
 	if err != nil {
 		return err
 	}

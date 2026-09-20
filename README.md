@@ -6,7 +6,7 @@ Aplicativo nativo para acessar um único Android persistente hospedado na VPS pe
 
 - API Go/SQLite com Argon2id, JWT curto, refresh rotativo, rate limit e uma sessão ativa.
 - Sinalização WebSocket autenticada, com uma conexão de cliente e uma de executor.
-- Gateway Go/Pion com H.264, Opus, ICE configurável e integração scrcpy 3.3.4.
+- Gateway Go/Pion com H.264, Opus estéreo fullband a 192 kbps, ICE configurável e integração scrcpy 3.3.4.
 - Cliente SwiftUI/UIKit para iOS 16+, vídeo proporcional, áudio, teclado por clipboard e multitoque.
 - GitHub Actions para testar Go, compilar Swift e gerar uma IPA `arm64` sem assinatura.
 - ReDroid Android 14 fixado por digest, persistente e restrito ao loopback na VPS, com uma camada mínima e reproduzível da Google Play para x86_64.
