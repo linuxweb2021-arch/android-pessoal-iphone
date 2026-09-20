@@ -11,7 +11,7 @@ struct RemoteSessionView: View {
             Color.black.ignoresSafeArea()
             if let client = model.webRTC {
                 RemoteVideoView(client: client)
-                    .ignoresSafeArea(edges: .horizontal)
+                    .ignoresSafeArea()
             } else {
                 ProgressView("Preparando sessão…")
             }
