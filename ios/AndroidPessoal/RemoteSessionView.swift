@@ -4,6 +4,7 @@ struct RemoteSessionView: View {
     @EnvironmentObject private var model: AppModel
     @State private var showingKeyboard = false
     @State private var textToSend = ""
+    @State private var showDiagnostic = true
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -34,12 +35,27 @@ struct RemoteSessionView: View {
             .padding(.bottom, 8)
         }
         .overlay(alignment: .top) {
-            Text(model.diagnostic)
-                .font(.caption)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: Capsule())
-                .padding(.top, 6)
+            if showDiagnostic {
+                Text(model.diagnostic)
+                    .font(.caption)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.top, 6)
+                    .onTapGesture { showDiagnostic = false }
+            }
+        }
+        .onChange(of: model.diagnostic) { _, newValue in
+            if newValue == "Conectado" {
+                // Hide the pill shortly after connecting so video is
+                // unobstructed. It reappears on any status change.
+                Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    showDiagnostic = false
+                }
+            } else {
+                showDiagnostic = true
+            }
         }
         .overlay {
             if case .failed(let message) = model.phase {
