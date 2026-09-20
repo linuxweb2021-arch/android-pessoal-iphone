@@ -45,7 +45,7 @@ struct RemoteSessionView: View {
                     .onTapGesture { showDiagnostic = false }
             }
         }
-        .onChange(of: model.diagnostic) { _, newValue in
+        .onChange(of: model.diagnostic) { newValue in
             if newValue == "Conectado" {
                 // Hide the pill shortly after connecting so video is
                 // unobstructed. It reappears on any status change.
